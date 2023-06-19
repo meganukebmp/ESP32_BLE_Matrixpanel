@@ -17,6 +17,8 @@ void * GIFOpenFile(const char *fname, int32_t *pSize);
 void GIFCloseFile(void *pHandle);
 int32_t GIFReadFile(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen);
 int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition);
-void display_play_gif(char *name);
+void display_load_gif(char *name);
+void display_advance_frame();
+void display_close_gif();
 
 #endif

@@ -183,20 +183,37 @@ int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition) {
 
 // TODO: Rework this to have frame advancer inbetween wireless stuff
 unsigned long start_tick = 0;
+bool gifOpened = false;
 
-void display_play_gif(char *name) {
-    start_tick = millis();
+void display_load_gif(char *name) {
+    // start_tick = millis();
+
+    // if (gif.open(name, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
+    //     Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
+    //     Serial.flush();
+    //     while (1) {
+    //         gif.playFrame(true, NULL);
+    //         // we'll get bored after about 10 seconds of the same looping gif
+    //         if ( (millis() - start_tick) > 10000) {
+    //             break;
+    //         }
+    //     }
+    //     gif.close();
+    // }
 
     if (gif.open(name, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
         Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
         Serial.flush();
-        while (1) {
-            gif.playFrame(true, NULL);
-            // we'll get bored after about 10 seconds of the same looping gif
-            if ( (millis() - start_tick) > 10000) {
-                break;
-            }
-        }
-        gif.close();
+        gifOpened = true;
     }
+}
+
+void display_advance_frame() {
+    if (!gifOpened)
+        return;
+    gif.playFrame(true, NULL);
+}
+
+void display_close_gif() {
+    gif.close();
 }
