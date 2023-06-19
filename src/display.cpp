@@ -11,7 +11,6 @@ VirtualMatrixPanel  *BigMatrix = nullptr;
 
 AnimatedGIF gif;
 File f;
-int x_offset, y_offset;
 
 void display_setup() {
     HUB75_I2S_CFG mxconfig(
@@ -31,7 +30,7 @@ void display_setup() {
     BigMatrix = new VirtualMatrixPanel((*dma_display), NUM_ROWS, NUM_COLS, PANEL_RES_X, PANEL_RES_Y, CHAIN_TYPE);
 
     // Initialize display
-    Serial.println("Starting display");
+    Serial.println("Starting display...");
     if (!dma_display->begin()) {
         // Failed, just hang the program
         Serial.println("FAILED TO ALLOCATE I2S MEMORY!!!");
@@ -182,17 +181,13 @@ int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition) {
     return pFile->iPos;
 }
 
-
+// TODO: Rework this to have frame advancer inbetween wireless stuff
 unsigned long start_tick = 0;
 
 void display_play_gif(char *name) {
     start_tick = millis();
 
     if (gif.open(name, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
-        x_offset = (MATRIX_WIDTH - gif.getCanvasWidth())/2;
-        if (x_offset < 0) x_offset = 0;
-        y_offset = (MATRIX_HEIGHT - gif.getCanvasHeight())/2;
-        if (y_offset < 0) y_offset = 0;
         Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
         Serial.flush();
         while (1) {

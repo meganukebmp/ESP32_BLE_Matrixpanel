@@ -3,13 +3,12 @@
 
 #include <display.h>
 
-
 void setup() {
     Serial.begin(115200);
     delay(1000);
 
     // Start filesystem
-    Serial.println(" * Loading SPIFFS");
+    Serial.println("Loading SPIFFS...");
     if(!SPIFFS.begin()){
         // Hang on SPIFFS fail
         Serial.println("SPIFFS Mount Failed");
