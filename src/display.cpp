@@ -185,7 +185,7 @@ int32_t GIFSeekFile(GIFFILE *pFile, int32_t iPosition) {
 unsigned long start_tick = 0;
 bool gifOpened = false;
 
-void display_load_gif(char *name) {
+void display_load_gif(const char *name) {
     // start_tick = millis();
 
     // if (gif.open(name, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
