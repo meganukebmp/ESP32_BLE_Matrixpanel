@@ -1,15 +1,20 @@
 #include <Arduino.h>
+#include <HardwareSerial.h>
 #include <SPIFFS.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <TinyGPS++.h>
 
+#include <pins.h>
 #include <display.h>
 
 #define SERVICE_UUID                "8a3da2e4-4d2a-48b2-801a-2fbf3ee8a160"
 #define RX_CHARACTERISTIC_UUID      "c97aaafc-adf2-4cab-883d-76719b863155"
 #define CMD_CHARACTERISTIC_UUID     "cd2de314-70f9-4573-bc71-9c9335e8c963"
+#define LAT_CHARACTERISTIC_UUID     "b6120bfa-46b3-45df-93fe-40f4c18ecbb7"
+#define LON_CHARACTERISTIC_UUID     "f038d4d6-ddde-4191-b1a3-735bc1af7489"
 
 // Commands to be send on the CMD characteristic
 #define CMD_WRITE_BEGIN 1
@@ -22,6 +27,12 @@ bool fileExists = false;
 int bytesWritten = 0;
 bool transfering = false;
 bool deviceConnected = false;
+
+// Use UART2 for GPS
+HardwareSerial SerialGPS(2);
+TinyGPSPlus gps;
+BLECharacteristic *latCharacteristic;
+BLECharacteristic *lonCharacteristic;
 
 // Callback for the raw data RX
 class rxCharacteristicCallback: public BLECharacteristicCallbacks {
@@ -54,6 +65,8 @@ class cmdCharacteristicCallback: public BLECharacteristicCallbacks {
                 transfering = true;
             }
             Serial.println("Begin transfer");
+            // Show the loading screen
+            display_show_loading_screen();
             return;
         }
 
@@ -92,6 +105,8 @@ class ServerCallback: public BLEServerCallbacks {
 
 void setup() {
     Serial.begin(115200);
+    // Rebind UART pins.
+    SerialGPS.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
     delay(1000);
 
     // Start filesystem
@@ -124,6 +139,13 @@ void setup() {
     BLECharacteristic *cmdCharacteristic = service->createCharacteristic(CMD_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE);
     cmdCharacteristic->setCallbacks(new cmdCharacteristicCallback());
 
+    // GPS characteristics
+    latCharacteristic = service->createCharacteristic(LAT_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+    lonCharacteristic = service->createCharacteristic(LON_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+    // For Notify connections we need a CCC descriptor
+    latCharacteristic->addDescriptor(new BLE2902());
+    lonCharacteristic->addDescriptor(new BLE2902());
+
     // Start the service
     service->start();
 
@@ -135,15 +157,17 @@ void setup() {
     // Setup the display
     display_setup();
 
-    // Load the gif if it exists
+    // Stop on file error
     fileExists = SPIFFS.exists(filePath);
-    if (fileExists) {
-        display_load_gif(filePath);
+    if (!fileExists) {
+        Serial.println("File not found! Corrupted flash!");
+        while(true) {};
     }
+
+    display_load_gif(filePath);
 }
 
-long lastTime = 0;
-char c = 0;
+int failed = 0;
 
 void loop() 
 {
@@ -152,5 +176,39 @@ void loop()
         display_advance_frame();
     }
 
-    delay(1);
+    // Don't bother with GPS stuff while no one is there to listen or while image transfering
+    if (deviceConnected && !transfering) {
+        // Fill the GPS buffer
+        while (SerialGPS.available() > 0) {
+            gps.encode(SerialGPS.read());
+        }
+
+        // On valid GPS message decode
+        if (gps.location.isUpdated()) {
+            char lat[20] = {0};
+            char lon[20] = {0};
+
+            // Get a full precision GPS message
+            sprintf(lat, "%s%d.%d",
+                    gps.location.rawLat().negative ? "-" : "",
+                    gps.location.rawLat().deg,
+                    gps.location.rawLat().billionths);
+            sprintf(lon, "%s%d.%d",
+                    gps.location.rawLng().negative ? "-" : "",
+                    gps.location.rawLng().deg,
+                    gps.location.rawLng().billionths);
+
+            // Fill up the characteristics and trigger a notify
+            latCharacteristic->setValue((uint8_t*)lat, strlen(lat));
+            lonCharacteristic->setValue((uint8_t*)lon, strlen(lon));
+            latCharacteristic->notify();
+            lonCharacteristic->notify();
+        }
+
+        if (gps.failedChecksum() > failed) {
+            Serial.print("Sentences that failed checksum=");
+            Serial.println(gps.failedChecksum());
+            failed = gps.failedChecksum();
+        }
+    }
 }

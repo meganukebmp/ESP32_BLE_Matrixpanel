@@ -4,6 +4,7 @@
 #include <ESP32-VirtualMatrixPanel-I2S-DMA.h>
 #include <SPIFFS.h>
 
+#include <pins.h>
 #include <display.h>
 
 MatrixPanel_I2S_DMA *dma_display = nullptr;
@@ -188,21 +189,6 @@ unsigned long start_tick = 0;
 bool gifOpened = false;
 
 void display_load_gif(const char *name) {
-    // start_tick = millis();
-
-    // if (gif.open(name, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
-    //     Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
-    //     Serial.flush();
-    //     while (1) {
-    //         gif.playFrame(true, NULL);
-    //         // we'll get bored after about 10 seconds of the same looping gif
-    //         if ( (millis() - start_tick) > 10000) {
-    //             break;
-    //         }
-    //     }
-    //     gif.close();
-    // }
-
     if (gif.open(name, GIFOpenFile, GIFCloseFile, GIFReadFile, GIFSeekFile, GIFDraw)) {
         Serial.printf("Successfully opened GIF; Canvas size = %d x %d\n", gif.getCanvasWidth(), gif.getCanvasHeight());
         Serial.flush();
@@ -220,6 +206,7 @@ void display_close_gif() {
     gif.close();
 }
 
+// Show 3 dots to indicate file transfer/loading
 void display_show_loading_screen() {
     BigMatrix->clearScreen();
     BigMatrix->fillCircle(64/2-15, 64/2, 5, dma_display->color444(15, 15, 15));
