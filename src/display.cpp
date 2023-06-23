@@ -13,10 +13,12 @@ AnimatedGIF gif;
 File f;
 
 void display_setup() {
+    HUB75_I2S_CFG::i2s_pins _pins={R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN, A_PIN, B_PIN, C_PIN, D_PIN, E_PIN, LAT_PIN, OE_PIN, CLK_PIN};
     HUB75_I2S_CFG mxconfig(
         PANEL_RES_X,   // module width
         PANEL_RES_Y,   // module height
-        PANEL_CHAIN    // Chain length
+        PANEL_CHAIN,   // Chain length
+        _pins          // Pin mappings
     );
 
     // Display Setup
@@ -216,4 +218,11 @@ void display_advance_frame() {
 
 void display_close_gif() {
     gif.close();
+}
+
+void display_show_loading_screen() {
+    BigMatrix->clearScreen();
+    BigMatrix->fillCircle(64/2-15, 64/2, 5, dma_display->color444(15, 15, 15));
+    BigMatrix->fillCircle(64/2, 64/2, 5, dma_display->color444(15, 15, 15));
+    BigMatrix->fillCircle(64/2+15, 64/2, 5, dma_display->color444(15, 15, 15));
 }
